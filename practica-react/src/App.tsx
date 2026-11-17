@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Producto } from './components/Producto';
+import { Contador } from './components/Contador';
 import './App.css'
 
 function App() {
@@ -7,13 +8,25 @@ function App() {
 
   return (
     <main style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-      <h1>Ejercicio 1 y 7: Tarjetas de Producto</h1>
+      <h1>Prácticas de React - Parte 1</h1>
       
-      <div style={{ display: 'flex', gap: '16px', marginTop: '20px' }}>
-        <Producto nombre="Teclado" precio={45000} stock={12} oferta={true} />
-        <Producto nombre="Mouse" precio={18000} stock={0} />
-        <Producto nombre="Monitor" precio={320000} stock={3} />
-      </div>
+      <section style={{ marginTop: '20px' }}>
+        <h2>Ejercicios 1 y 7: Tarjetas de Producto</h2>
+        <div style={{ display: 'flex', gap: '16px', marginTop: '10px' }}>
+          <Producto nombre="Teclado" precio={45000} stock={12} oferta={true} />
+          <Producto nombre="Mouse" precio={18000} stock={0} />
+          <Producto nombre="Monitor" precio={320000} stock={3} />
+        </div>
+      </section>
+
+      <hr style={{ margin: '30px 0' }} />
+
+      <section>
+        <h2>Ejercicio 2: Contador con límites</h2>
+        <div>
+          <Contador />
+        </div>
+      </section>
     </main>
   );
 }

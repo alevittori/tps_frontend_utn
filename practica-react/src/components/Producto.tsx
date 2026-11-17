@@ -1,4 +1,3 @@
-// src/components/Producto.tsx
 
 interface ProductoProps {
   nombre: string;
