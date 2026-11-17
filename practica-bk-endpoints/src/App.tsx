@@ -7,10 +7,11 @@ export default function App() {
   const [password, setPassword] = useState("");
 
   const [error, setError] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  //const [token, setToken] = useState<string | null>(null);
+
+  const [token, setToken] = useState(localStorage.getItem("token"));
 
   async function handleSubmit(event: SubmitEvent) {
-
     event.preventDefault();
     setError(null);
 
@@ -21,15 +22,31 @@ export default function App() {
     });
 
     const data = await response.json();
+
     if (!response.ok) {
       setError(data.detail);
       return;
     }
-    
+
+    localStorage.setItem("token", data.token);
     setToken(data.token);
   }
 
-  if (token) return <UserList token={token} />
+  function logout() {
+    localStorage.removeItem("token");
+    setToken(null);
+  }
+  
+  if (token) {
+    return (
+      <>
+        <button onClick={logout}>Salir</button>
+        <UserList token={token} />
+      </>
+    );
+  }
+
+  if (token) return <UserList token={token} />;
 
   return (
     <form onSubmit={handleSubmit}>
