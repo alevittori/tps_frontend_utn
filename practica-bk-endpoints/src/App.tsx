@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { SubmitEvent } from "react";
+import { UserList } from "./components/UserList";
 
 export default function App() {
   const [email, setEmail] = useState("");
@@ -7,23 +8,29 @@ export default function App() {
 
   const [error, setError] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
+
   async function handleSubmit(event: SubmitEvent) {
+
     event.preventDefault();
     setError(null);
+
     const response = await fetch(`${import.meta.env.VITE_API_URL}/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
+
     const data = await response.json();
     if (!response.ok) {
       setError(data.detail);
       return;
     }
+    
     setToken(data.token);
   }
 
-  if (token) return <p>Bienvenido</p>; // login OK: cambia la pantalla
+  if (token) return <UserList token={token} />
+
   return (
     <form onSubmit={handleSubmit}>
       <input
