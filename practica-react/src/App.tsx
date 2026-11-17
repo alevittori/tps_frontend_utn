@@ -3,6 +3,7 @@ import { Producto } from './components/Producto';
 import { Contador } from './components/Contador';
 import { PreguntaRespuesta } from './components/PreguntaREspuesta';
 import { ListaCompras } from './components/LIstaCompra';
+import { Buscador } from './components/Buscador';
 import './App.css'
 import { ConversorTemperatura } from './components/ConversonTemperatura';
 
@@ -51,6 +52,14 @@ function App() {
         <h2>Ejercicio 5: Lista de compras</h2>
         <ListaCompras />
       </section>
+
+      <hr style={{ margin: '30px 0' }} />
+
+      <section style={{ marginBottom: '40px' }}>
+        <h2>Ejercicio 6: Buscador</h2>
+        <Buscador />
+      </section>
+
 
     </main>
   );
