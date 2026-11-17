@@ -3,6 +3,7 @@ import { Producto } from './components/Producto';
 import { Contador } from './components/Contador';
 import { PreguntaRespuesta } from './components/PreguntaREspuesta';
 import './App.css'
+import { ConversorTemperatura } from './components/ConversonTemperatura';
 
 function App() {
   // const [count, setCount] = useState(0)
@@ -36,6 +37,12 @@ function App() {
         <PreguntaRespuesta />
       </section>
 
+      <hr style={{ margin: '30px 0' }} />
+
+      <section>
+        <h2>Ejercicio 4: Conversor de temperatura</h2>
+        <ConversorTemperatura />
+      </section>
     </main>
   );
 }
