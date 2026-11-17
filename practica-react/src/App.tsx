@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Producto } from './components/Producto';
 import { Contador } from './components/Contador';
 import { PreguntaRespuesta } from './components/PreguntaREspuesta';
+import { ListaCompras } from './components/LIstaCompra';
 import './App.css'
 import { ConversorTemperatura } from './components/ConversonTemperatura';
 
@@ -43,6 +44,14 @@ function App() {
         <h2>Ejercicio 4: Conversor de temperatura</h2>
         <ConversorTemperatura />
       </section>
+
+      <hr style={{ margin: '30px 0' }} />
+
+      <section>
+        <h2>Ejercicio 5: Lista de compras</h2>
+        <ListaCompras />
+      </section>
+
     </main>
   );
 }
