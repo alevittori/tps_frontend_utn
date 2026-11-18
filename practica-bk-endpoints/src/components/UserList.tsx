@@ -14,7 +14,12 @@ interface UserDetail {
   roles: { id: number; name: string }[];
 }
 
-export function UserList({ token }: { token: string }) {
+interface UserListProps {
+  token: string;
+  onUnauthorized: () => void;
+}
+
+export function UserList({ token, onUnauthorized }: UserListProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -41,7 +46,7 @@ export function UserList({ token }: { token: string }) {
   // Práctica 7: Error al borrar usuario
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // Función reutilizable para cargar la lista
+  // 1. Función reutilizable para cargar la lista
   const fetchUsers = useCallback(() => {
     setLoading(true);
     setError(null);
@@ -57,6 +62,10 @@ export function UserList({ token }: { token: string }) {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (response) => {
+        if (response.status === 401) {
+          onUnauthorized();
+          return;
+        }
         const data = await response.json();
         if (!response.ok) {
           setError(data.detail);
@@ -71,9 +80,8 @@ export function UserList({ token }: { token: string }) {
       .finally(() => {
         setLoading(false);
       });
-  }, [token, searchUrl, onlyAdults]);
+  }, [token, searchUrl, onlyAdults, onUnauthorized]);
 
-  // 1. Cargar lista al montar o cambiar filtros
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
@@ -83,11 +91,29 @@ export function UserList({ token }: { token: string }) {
     const headers = { Authorization: `Bearer ${token}` };
     const api = import.meta.env.VITE_API_URL;
     fetch(`${api}/user/me/id`, { headers })
-      .then((response) => response.json())
-      .then(({ id }) => fetch(`${api}/user/${id}`, { headers }))
-      .then((response) => response.json())
-      .then(setMe);
-  }, [token]);
+      .then((response) => {
+        if (response.status === 401) {
+          onUnauthorized();
+          return null;
+        }
+        return response.json();
+      })
+      .then((meData) => {
+        if (!meData) return null;
+        return fetch(`${api}/user/${meData.id}`, { headers });
+      })
+      .then((response) => {
+        if (!response) return null;
+        if (response.status === 401) {
+          onUnauthorized();
+          return null;
+        }
+        return response.json();
+      })
+      .then((userData) => {
+        if (userData) setMe(userData);
+      });
+  }, [token, onUnauthorized]);
 
   // 3. Cargar detalle del usuario seleccionado
   useEffect(() => {
@@ -99,9 +125,17 @@ export function UserList({ token }: { token: string }) {
     fetch(`${import.meta.env.VITE_API_URL}/user/${selectedUserId}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((response) => response.json())
-      .then((data) => setSelectedUserDetail(data));
-  }, [selectedUserId, token]);
+      .then((response) => {
+        if (response.status === 401) {
+          onUnauthorized();
+          return null;
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (data) setSelectedUserDetail(data);
+      });
+  }, [selectedUserId, token, onUnauthorized]);
 
   // Manejadores de búsqueda (Práctica 3)
   function handleSearch(e: SubmitEvent) {
@@ -138,6 +172,11 @@ export function UserList({ token }: { token: string }) {
         },
         body: JSON.stringify(body),
       });
+
+      if (response.status === 401) {
+        onUnauthorized();
+        return;
+      }
 
       const data = await response.json();
 
@@ -177,18 +216,20 @@ export function UserList({ token }: { token: string }) {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      if (response.status === 401) {
+        onUnauthorized();
+        return;
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
-        // Por ejemplo, con sfer devuelve 403: "Missing permission: delete_users"
         setDeleteError(data.detail || "No se pudo borrar el usuario");
         return;
       }
 
-      // Sacamos el usuario del estado local sin volver a pedir la lista
       setUsers((prevUsers) => prevUsers.filter((u) => u.id !== user.id));
 
-      // Si estábamos viendo su detalle, lo cerramos
       if (selectedUserId === user.id) {
         setSelectedUserId(null);
         setSelectedUserDetail(null);

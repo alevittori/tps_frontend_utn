@@ -1,15 +1,11 @@
-import { useState } from "react";
-import type { SubmitEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { UserList } from "./components/UserList";
 
 export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [error, setError] = useState<string | null>(null);
-  //const [token, setToken] = useState<string | null>(null);
-
-  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"));
 
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
@@ -36,34 +32,40 @@ export default function App() {
     localStorage.removeItem("token");
     setToken(null);
   }
-  
+
+  function handleUnauthorized() {
+    localStorage.removeItem("token");
+    setToken(null);
+    setError("Tu sesión venció");
+  }
+
   if (token) {
     return (
       <>
         <button onClick={logout}>Salir</button>
-        <UserList token={token} />
+        <UserList token={token} onUnauthorized={handleUnauthorized} />
       </>
     );
   }
-
-  if (token) return <UserList token={token} />;
 
   return (
     <form onSubmit={handleSubmit}>
       <input
         type="email"
+        placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
+        required
       />
       <input
         type="password"
+        placeholder="Contraseña"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+        required
       />
       <button type="submit">Ingresar</button>
-      {error && <p>{error}</p>}{" "}
-      {/* login fallido: muestra el detail de la
-API */}
+      {error && <p style={{ color: "red" }}>{error}</p>}
     </form>
   );
 }
