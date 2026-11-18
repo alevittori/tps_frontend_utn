@@ -1,4 +1,4 @@
-import { useEffect, useState, type SubmitEvent } from "react";
+import { useCallback, useEffect, useState, type SubmitEvent } from "react";
 
 interface User {
   id: number;
@@ -21,19 +21,25 @@ export function UserList({ token }: { token: string }) {
   const [me, setMe] = useState<UserDetail | null>(null);
 
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [selectedUserDetail, setSelectedUserDetail] =
-    useState<UserDetail | null>(null);
+  const [selectedUserDetail, setSelectedUserDetail] = useState<UserDetail | null>(null);
 
-  // Estados para la Práctica 3
+  // Práctica 3: Búsqueda
   const [searchText, setSearchText] = useState<string>("");
   const [searchUrl, setSearchUrl] = useState<string | null>(null);
 
-  //  Cargar la lista completa o filtrada de usuarios
-  useEffect(() => {
+  // Práctica 5: Estados del formulario de alta
+  const [newName, setNewName] = useState("");
+  const [newAge, setNewAge] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newCountryId, setNewCountryId] = useState("1");
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  // Función reutilizable para cargar la lista
+  const fetchUsers = useCallback(() => {
     setLoading(true);
     setError(null);
 
-    // Si hay una URL de búsqueda activa, usamos esa; si no, traemos todos con GET /user
     const endpoint = searchUrl
       ? `${import.meta.env.VITE_API_URL}/user/search/${encodeURIComponent(searchUrl)}`
       : `${import.meta.env.VITE_API_URL}/user`;
@@ -43,13 +49,11 @@ export function UserList({ token }: { token: string }) {
     })
       .then(async (response) => {
         const data = await response.json();
-
         if (!response.ok) {
           setError(data.detail);
           setUsers([]);
           return;
         }
-
         setUsers(data);
       })
       .catch(() => {
@@ -59,6 +63,11 @@ export function UserList({ token }: { token: string }) {
         setLoading(false);
       });
   }, [token, searchUrl]);
+
+  // 1. Cargar lista al montar o cambiar búsqueda
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   // 2. Cargar mi propio usuario
   useEffect(() => {
@@ -85,17 +94,59 @@ export function UserList({ token }: { token: string }) {
       .then((data) => setSelectedUserDetail(data));
   }, [selectedUserId, token]);
 
-  // Manejador del formulario de búsqueda (Práctica 3)
+  // Manejadores de búsqueda (Práctica 3)
   function handleSearch(e: SubmitEvent) {
     e.preventDefault();
     if (!searchText.trim()) return;
     setSearchUrl(searchText.trim());
   }
 
-  // Manejador para limpiar la búsqueda y volver a la lista completa
   function handleClear() {
     setSearchText("");
     setSearchUrl(null);
+  }
+
+  // Manejador de alta de usuario (Práctica 5)
+  async function handleCreateUser(e: SubmitEvent) {
+    e.preventDefault();
+    setCreateError(null);
+
+    const body = {
+      name: newName,
+      age: Number(newAge),
+      email: newEmail,
+      password: newPassword,
+      country_id: Number(newCountryId),
+    };
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Por ejemplo, con sfer devuelve 403: "Missing permission: write_users"
+        setCreateError(data.detail || "Error al crear el usuario");
+        return;
+      }
+
+      // Limpiamos el formulario y refrescamos la lista sin recargar la página
+      setNewName("");
+      setNewAge("");
+      setNewEmail("");
+      setNewPassword("");
+      setNewCountryId("1");
+      fetchUsers();
+    } catch {
+      setCreateError("Error de conexión al intentar crear el usuario");
+    }
   }
 
   if (loading && users.length === 0) return <p>Cargando...</p>;
@@ -104,9 +155,50 @@ export function UserList({ token }: { token: string }) {
   return (
     <>
       <h1>
-        Hola, {me?.name}{" "}
-        {me?.roles && `(${me.roles.map((r) => r.name).join(", ")})`}
+        Hola, {me?.name} {me?.roles && `(${me.roles.map((r) => r.name).join(", ")})`}
       </h1>
+
+      {/* Formulario de Alta - Práctica 5 */}
+      <div style={{ margin: "20px 0", padding: "15px", border: "1px solid #ccc" }}>
+        <h3>Nuevo Usuario</h3>
+        <form onSubmit={handleCreateUser} style={{ display: "flex", flexDirection: "column", gap: "10px", maxWidth: "300px" }}>
+          <input
+            type="text"
+            placeholder="Nombre"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            required
+          />
+          <input
+            type="number"
+            placeholder="Edad"
+            value={newAge}
+            onChange={(e) => setNewAge(e.target.value)}
+            required
+          />
+          <input
+            type="email"
+            placeholder="Email"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Contraseña (mín. 4 caracteres)"
+            minLength={4}
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+          />
+          <select value={newCountryId} onChange={(e) => setNewCountryId(e.target.value)}>
+            <option value="1">Argentina</option>
+            <option value="2">Brasil</option>
+          </select>
+          <button type="submit">Crear Usuario</button>
+        </form>
+        {createError && <p style={{ color: "red", marginTop: "10px" }}>{createError}</p>}
+      </div>
 
       {/* Formulario de Búsqueda - Práctica 3 */}
       <form onSubmit={handleSearch} style={{ margin: "15px 0" }}>
@@ -116,15 +208,9 @@ export function UserList({ token }: { token: string }) {
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
         />
-        <button type="submit" style={{ marginLeft: "5px" }}>
-          Buscar
-        </button>
+        <button type="submit" style={{ marginLeft: "5px" }}>Buscar</button>
         {searchUrl && (
-          <button
-            type="button"
-            onClick={handleClear}
-            style={{ marginLeft: "5px" }}
-          >
+          <button type="button" onClick={handleClear} style={{ marginLeft: "5px" }}>
             Limpiar
           </button>
         )}
@@ -139,14 +225,7 @@ export function UserList({ token }: { token: string }) {
             <li key={user.id}>
               <button
                 onClick={() => setSelectedUserId(user.id)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "blue",
-                  cursor: "pointer",
-                  textDecoration: "underline",
-                  padding: 0,
-                }}
+                style={{ background: "none", border: "none", color: "blue", cursor: "pointer", textDecoration: "underline", padding: 0 }}
               >
                 {user.name}
               </button>
@@ -156,31 +235,12 @@ export function UserList({ token }: { token: string }) {
       )}
 
       {selectedUserDetail && (
-        <div
-          style={{
-            marginTop: "20px",
-            padding: "15px",
-            border: "1px solid #ccc",
-          }}
-        >
+        <div style={{ marginTop: "20px", padding: "15px", border: "1px solid #ccc" }}>
           <h3>Detalle de: {selectedUserDetail.name}</h3>
-          <p>
-            <strong>Email:</strong> {selectedUserDetail.email}
-          </p>
-          <p>
-            <strong>Edad:</strong> {selectedUserDetail.age}
-          </p>
-          <p>
-            <strong>País:</strong>{" "}
-            {selectedUserDetail.country
-              ? selectedUserDetail.country.name
-              : "Sin país"}
-          </p>
-          <p>
-            <strong>Roles:</strong>{" "}
-            {selectedUserDetail.roles.map((r) => r.name).join(", ") ||
-              "Ninguno"}
-          </p>
+          <p><strong>Email:</strong> {selectedUserDetail.email}</p>
+          <p><strong>Edad:</strong> {selectedUserDetail.age}</p>
+          <p><strong>País:</strong> {selectedUserDetail.country ? selectedUserDetail.country.name : "Sin país"}</p>
+          <p><strong>Roles:</strong> {selectedUserDetail.roles.map((r) => r.name).join(", ") || "Ninguno"}</p>
         </div>
       )}
     </>
