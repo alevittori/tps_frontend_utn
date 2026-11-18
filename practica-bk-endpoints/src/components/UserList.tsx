@@ -38,6 +38,9 @@ export function UserList({ token }: { token: string }) {
   // Práctica 6: Filtro solo mayores de edad
   const [onlyAdults, setOnlyAdults] = useState<boolean>(false);
 
+  // Práctica 7: Error al borrar usuario
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   // Función reutilizable para cargar la lista
   const fetchUsers = useCallback(() => {
     setLoading(true);
@@ -104,7 +107,7 @@ export function UserList({ token }: { token: string }) {
   function handleSearch(e: SubmitEvent) {
     e.preventDefault();
     if (!searchText.trim()) return;
-    setOnlyAdults(false); // Desactivamos filtro de mayores al buscar por nombre
+    setOnlyAdults(false);
     setSearchUrl(searchText.trim());
   }
 
@@ -159,6 +162,40 @@ export function UserList({ token }: { token: string }) {
     setSearchText("");
     setSearchUrl(null);
     setOnlyAdults((prev) => !prev);
+  }
+
+  // Borrar usuario con confirmación y filter (Práctica 7)
+  async function handleDeleteUser(user: User) {
+    setDeleteError(null);
+
+    const confirmed = window.confirm(`¿Estás seguro de que querés borrar a ${user.name}?`);
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/${user.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Por ejemplo, con sfer devuelve 403: "Missing permission: delete_users"
+        setDeleteError(data.detail || "No se pudo borrar el usuario");
+        return;
+      }
+
+      // Sacamos el usuario del estado local sin volver a pedir la lista
+      setUsers((prevUsers) => prevUsers.filter((u) => u.id !== user.id));
+
+      // Si estábamos viendo su detalle, lo cerramos
+      if (selectedUserId === user.id) {
+        setSelectedUserId(null);
+        setSelectedUserDetail(null);
+      }
+    } catch {
+      setDeleteError("Error de red al intentar borrar el usuario");
+    }
   }
 
   if (loading && users.length === 0) return <p>Cargando...</p>;
@@ -235,17 +272,26 @@ export function UserList({ token }: { token: string }) {
       </div>
 
       <h2>Lista de Usuarios {onlyAdults && "(Solo mayores de edad)"}</h2>
+      {deleteError && <p style={{ color: "red" }}>{deleteError}</p>}
+
       {users.length === 0 ? (
         <p>No se encontraron usuarios.</p>
       ) : (
         <ul>
           {users.map((user) => (
-            <li key={user.id}>
+            <li key={user.id} style={{ marginBottom: "8px" }}>
               <button
                 onClick={() => setSelectedUserId(user.id)}
                 style={{ background: "none", border: "none", color: "blue", cursor: "pointer", textDecoration: "underline", padding: 0 }}
               >
                 {user.name}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteUser(user)}
+                style={{ marginLeft: "12px", color: "crimson", cursor: "pointer" }}
+              >
+                Borrar
               </button>
             </li>
           ))}
