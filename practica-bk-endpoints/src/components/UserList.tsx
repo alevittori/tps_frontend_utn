@@ -18,12 +18,13 @@ export function UserList({ token }: { token: string }) {
   const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [me, setMe] = useState<User | null>(null);
+  const [me, setMe] = useState<UserDetail | null>(null);
 
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [selectedUserDetail, setSelectedUserDetail] = useState<UserDetail | null>(null);
+  const [selectedUserDetail, setSelectedUserDetail] =
+    useState<UserDetail | null>(null);
 
-  // Estados para la Práctica 3 
+  // Estados para la Práctica 3
   const [searchText, setSearchText] = useState<string>("");
   const [searchUrl, setSearchUrl] = useState<string | null>(null);
 
@@ -33,7 +34,7 @@ export function UserList({ token }: { token: string }) {
     setError(null);
 
     // Si hay una URL de búsqueda activa, usamos esa; si no, traemos todos con GET /user
-    const endpoint = searchUrl 
+    const endpoint = searchUrl
       ? `${import.meta.env.VITE_API_URL}/user/search/${encodeURIComponent(searchUrl)}`
       : `${import.meta.env.VITE_API_URL}/user`;
 
@@ -42,13 +43,13 @@ export function UserList({ token }: { token: string }) {
     })
       .then(async (response) => {
         const data = await response.json();
-        
+
         if (!response.ok) {
           setError(data.detail);
           setUsers([]);
           return;
         }
-        
+
         setUsers(data);
       })
       .catch(() => {
@@ -102,19 +103,28 @@ export function UserList({ token }: { token: string }) {
 
   return (
     <>
-      <h1>Hola, {me?.name}</h1>
-      
+      <h1>
+        Hola, {me?.name}{" "}
+        {me?.roles && `(${me.roles.map((r) => r.name).join(", ")})`}
+      </h1>
+
       {/* Formulario de Búsqueda - Práctica 3 */}
-      <form onSubmit={handleSearch} style={{ margin: '15px 0' }}>
-        <input 
-          type="text" 
-          placeholder="Buscar por nombre..." 
+      <form onSubmit={handleSearch} style={{ margin: "15px 0" }}>
+        <input
+          type="text"
+          placeholder="Buscar por nombre..."
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
         />
-        <button type="submit" style={{ marginLeft: '5px' }}>Buscar</button>
+        <button type="submit" style={{ marginLeft: "5px" }}>
+          Buscar
+        </button>
         {searchUrl && (
-          <button type="button" onClick={handleClear} style={{ marginLeft: '5px' }}>
+          <button
+            type="button"
+            onClick={handleClear}
+            style={{ marginLeft: "5px" }}
+          >
             Limpiar
           </button>
         )}
@@ -127,9 +137,16 @@ export function UserList({ token }: { token: string }) {
         <ul>
           {users.map((user) => (
             <li key={user.id}>
-              <button 
+              <button
                 onClick={() => setSelectedUserId(user.id)}
-                style={{ background: 'none', border: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "blue",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  padding: 0,
+                }}
               >
                 {user.name}
               </button>
@@ -139,12 +156,31 @@ export function UserList({ token }: { token: string }) {
       )}
 
       {selectedUserDetail && (
-        <div style={{ marginTop: '20px', padding: '15px', border: '1px solid #ccc' }}>
+        <div
+          style={{
+            marginTop: "20px",
+            padding: "15px",
+            border: "1px solid #ccc",
+          }}
+        >
           <h3>Detalle de: {selectedUserDetail.name}</h3>
-          <p><strong>Email:</strong> {selectedUserDetail.email}</p>
-          <p><strong>Edad:</strong> {selectedUserDetail.age}</p>
-          <p><strong>País:</strong> {selectedUserDetail.country ? selectedUserDetail.country.name : 'Sin país'}</p>
-          <p><strong>Roles:</strong> {selectedUserDetail.roles.map(r => r.name).join(', ') || 'Ninguno'}</p>
+          <p>
+            <strong>Email:</strong> {selectedUserDetail.email}
+          </p>
+          <p>
+            <strong>Edad:</strong> {selectedUserDetail.age}
+          </p>
+          <p>
+            <strong>País:</strong>{" "}
+            {selectedUserDetail.country
+              ? selectedUserDetail.country.name
+              : "Sin país"}
+          </p>
+          <p>
+            <strong>Roles:</strong>{" "}
+            {selectedUserDetail.roles.map((r) => r.name).join(", ") ||
+              "Ninguno"}
+          </p>
         </div>
       )}
     </>
