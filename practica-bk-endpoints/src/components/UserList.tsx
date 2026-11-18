@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type SubmitEvent } from "react";
 
 interface User {
   id: number;
   name: string;
 }
 
-// Interfaz para el detalle completo que devuelve GET /user/{id}
 interface UserDetail {
   id: number;
   name: string;
@@ -16,46 +15,51 @@ interface UserDetail {
 }
 
 export function UserList({ token }: { token: string }) {
-
   const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [me, setMe] = useState<User | null>(null);
-  
-  // Estado: ID del usuario seleccionado y su detalle
+
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [selectedUserDetail, setSelectedUserDetail] = useState<UserDetail | null>(null);
 
-  const [loading, setLoading] = useState<boolean>(true); 
+  // Estados para la Práctica 3 
+  const [searchText, setSearchText] = useState<string>("");
+  const [searchUrl, setSearchUrl] = useState<string | null>(null);
 
-  // Cargar la lista de usuarios con manejo de loading y response.ok
+  //  Cargar la lista completa o filtrada de usuarios
   useEffect(() => {
     setLoading(true);
     setError(null);
 
-    // Para probar el error cambiar temporalmente a `${import.meta.env.VITE_API_URL}/usr`
-    fetch(`${import.meta.env.VITE_API_URL}/user`, {
+    // Si hay una URL de búsqueda activa, usamos esa; si no, traemos todos con GET /user
+    const endpoint = searchUrl 
+      ? `${import.meta.env.VITE_API_URL}/user/search/${encodeURIComponent(searchUrl)}`
+      : `${import.meta.env.VITE_API_URL}/user`;
+
+    fetch(endpoint, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (response) => {
         const data = await response.json();
         
         if (!response.ok) {
-          setError(data.detail); // Muestra el detail en lugar de la lista
+          setError(data.detail);
           setUsers([]);
           return;
         }
         
         setUsers(data);
       })
-      .catch((err) => {
+      .catch(() => {
         setError("Error de red al conectar con la API");
       })
       .finally(() => {
         setLoading(false);
       });
-  }, [token]);
+  }, [token, searchUrl]);
 
-  // Cargar mi propio usuario (Paso 6)
+  // 2. Cargar mi propio usuario
   useEffect(() => {
     const headers = { Authorization: `Bearer ${token}` };
     const api = import.meta.env.VITE_API_URL;
@@ -66,7 +70,7 @@ export function UserList({ token }: { token: string }) {
       .then(setMe);
   }, [token]);
 
-  // Cargar el detalle cuando cambia el ID seleccionado
+  // 3. Cargar detalle del usuario seleccionado
   useEffect(() => {
     if (selectedUserId === null) {
       setSelectedUserDetail(null);
@@ -77,38 +81,63 @@ export function UserList({ token }: { token: string }) {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((response) => response.json())
-      .then((data) => setSelectedUserDetail(data)); 
+      .then((data) => setSelectedUserDetail(data));
   }, [selectedUserId, token]);
 
-    //console.log(selectedUserDetail)
+  // Manejador del formulario de búsqueda (Práctica 3)
+  function handleSearch(e: SubmitEvent) {
+    e.preventDefault();
+    if (!searchText.trim()) return;
+    setSearchUrl(searchText.trim());
+  }
 
-  //if (error) return <p>{error}</p>;
+  // Manejador para limpiar la búsqueda y volver a la lista completa
+  function handleClear() {
+    setSearchText("");
+    setSearchUrl(null);
+  }
 
-  // Renderizado condicional para la Práctica 2
-  if (loading) return <p>Cargando...</p>;
+  if (loading && users.length === 0) return <p>Cargando...</p>;
   if (error) return <p style={{ color: "red" }}>{error}</p>;
-
 
   return (
     <>
       <h1>Hola, {me?.name}</h1>
       
-      <h2>Lista de Usuarios</h2>
-      <ul>
-        {users.map((user) => (
-          <li key={user.id}>
-            {/* Hacemos clic en el nombre para ver su detalle */}
-            <button 
-              onClick={() => setSelectedUserId(user.id)}
-              style={{ background: 'none', border: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
-            >
-              {user.name}
-            </button>
-          </li>
-        ))}
-      </ul>
+      {/* Formulario de Búsqueda - Práctica 3 */}
+      <form onSubmit={handleSearch} style={{ margin: '15px 0' }}>
+        <input 
+          type="text" 
+          placeholder="Buscar por nombre..." 
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
+        <button type="submit" style={{ marginLeft: '5px' }}>Buscar</button>
+        {searchUrl && (
+          <button type="button" onClick={handleClear} style={{ marginLeft: '5px' }}>
+            Limpiar
+          </button>
+        )}
+      </form>
 
-      {/* Sección de la Práctica 1: Mostrar detalle del usuario seleccionado */}
+      <h2>Lista de Usuarios</h2>
+      {users.length === 0 ? (
+        <p>No se encontraron usuarios.</p>
+      ) : (
+        <ul>
+          {users.map((user) => (
+            <li key={user.id}>
+              <button 
+                onClick={() => setSelectedUserId(user.id)}
+                style={{ background: 'none', border: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+              >
+                {user.name}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {selectedUserDetail && (
         <div style={{ marginTop: '20px', padding: '15px', border: '1px solid #ccc' }}>
           <h3>Detalle de: {selectedUserDetail.name}</h3>
