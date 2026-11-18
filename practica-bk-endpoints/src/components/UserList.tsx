@@ -35,14 +35,20 @@ export function UserList({ token }: { token: string }) {
   const [newCountryId, setNewCountryId] = useState("1");
   const [createError, setCreateError] = useState<string | null>(null);
 
+  // Práctica 6: Filtro solo mayores de edad
+  const [onlyAdults, setOnlyAdults] = useState<boolean>(false);
+
   // Función reutilizable para cargar la lista
   const fetchUsers = useCallback(() => {
     setLoading(true);
     setError(null);
 
-    const endpoint = searchUrl
-      ? `${import.meta.env.VITE_API_URL}/user/search/${encodeURIComponent(searchUrl)}`
-      : `${import.meta.env.VITE_API_URL}/user`;
+    let endpoint = `${import.meta.env.VITE_API_URL}/user`;
+    if (searchUrl) {
+      endpoint = `${import.meta.env.VITE_API_URL}/user/search/${encodeURIComponent(searchUrl)}`;
+    } else if (onlyAdults) {
+      endpoint = `${import.meta.env.VITE_API_URL}/user_mayores`;
+    }
 
     fetch(endpoint, {
       headers: { Authorization: `Bearer ${token}` },
@@ -62,9 +68,9 @@ export function UserList({ token }: { token: string }) {
       .finally(() => {
         setLoading(false);
       });
-  }, [token, searchUrl]);
+  }, [token, searchUrl, onlyAdults]);
 
-  // 1. Cargar lista al montar o cambiar búsqueda
+  // 1. Cargar lista al montar o cambiar filtros
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
@@ -98,6 +104,7 @@ export function UserList({ token }: { token: string }) {
   function handleSearch(e: SubmitEvent) {
     e.preventDefault();
     if (!searchText.trim()) return;
+    setOnlyAdults(false); // Desactivamos filtro de mayores al buscar por nombre
     setSearchUrl(searchText.trim());
   }
 
@@ -132,12 +139,10 @@ export function UserList({ token }: { token: string }) {
       const data = await response.json();
 
       if (!response.ok) {
-        // Por ejemplo, con sfer devuelve 403: "Missing permission: write_users"
         setCreateError(data.detail || "Error al crear el usuario");
         return;
       }
 
-      // Limpiamos el formulario y refrescamos la lista sin recargar la página
       setNewName("");
       setNewAge("");
       setNewEmail("");
@@ -147,6 +152,13 @@ export function UserList({ token }: { token: string }) {
     } catch {
       setCreateError("Error de conexión al intentar crear el usuario");
     }
+  }
+
+  // Alternar filtro de mayores (Práctica 6)
+  function toggleAdultsFilter() {
+    setSearchText("");
+    setSearchUrl(null);
+    setOnlyAdults((prev) => !prev);
   }
 
   if (loading && users.length === 0) return <p>Cargando...</p>;
@@ -200,23 +212,29 @@ export function UserList({ token }: { token: string }) {
         {createError && <p style={{ color: "red", marginTop: "10px" }}>{createError}</p>}
       </div>
 
-      {/* Formulario de Búsqueda - Práctica 3 */}
-      <form onSubmit={handleSearch} style={{ margin: "15px 0" }}>
-        <input
-          type="text"
-          placeholder="Buscar por nombre..."
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-        />
-        <button type="submit" style={{ marginLeft: "5px" }}>Buscar</button>
-        {searchUrl && (
-          <button type="button" onClick={handleClear} style={{ marginLeft: "5px" }}>
-            Limpiar
-          </button>
-        )}
-      </form>
+      {/* Formulario de Búsqueda y Filtro - Prácticas 3 y 6 */}
+      <div style={{ margin: "15px 0", display: "flex", gap: "10px", alignItems: "center" }}>
+        <form onSubmit={handleSearch}>
+          <input
+            type="text"
+            placeholder="Buscar por nombre..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
+          <button type="submit" style={{ marginLeft: "5px" }}>Buscar</button>
+          {searchUrl && (
+            <button type="button" onClick={handleClear} style={{ marginLeft: "5px" }}>
+              Limpiar
+            </button>
+          )}
+        </form>
 
-      <h2>Lista de Usuarios</h2>
+        <button type="button" onClick={toggleAdultsFilter}>
+          {onlyAdults ? "Todos" : "Solo mayores"}
+        </button>
+      </div>
+
+      <h2>Lista de Usuarios {onlyAdults && "(Solo mayores de edad)"}</h2>
       {users.length === 0 ? (
         <p>No se encontraron usuarios.</p>
       ) : (
