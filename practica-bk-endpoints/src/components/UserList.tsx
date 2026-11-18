@@ -25,18 +25,33 @@ export function UserList({ token }: { token: string }) {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [selectedUserDetail, setSelectedUserDetail] = useState<UserDetail | null>(null);
 
-  // Cargar la lista de usuarios
+  const [loading, setLoading] = useState<boolean>(true); 
+
+  // Cargar la lista de usuarios con manejo de loading y response.ok
   useEffect(() => {
+    setLoading(true);
+    setError(null);
+
+    // Para probar el error cambiar temporalmente a `${import.meta.env.VITE_API_URL}/usr`
     fetch(`${import.meta.env.VITE_API_URL}/user`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (response) => {
         const data = await response.json();
+        
         if (!response.ok) {
-          setError(data.detail);
+          setError(data.detail); // Muestra el detail en lugar de la lista
+          setUsers([]);
           return;
         }
+        
         setUsers(data);
+      })
+      .catch((err) => {
+        setError("Error de red al conectar con la API");
+      })
+      .finally(() => {
+        setLoading(false);
       });
   }, [token]);
 
@@ -67,7 +82,12 @@ export function UserList({ token }: { token: string }) {
 
     //console.log(selectedUserDetail)
 
-  if (error) return <p>{error}</p>;
+  //if (error) return <p>{error}</p>;
+
+  // Renderizado condicional para la Práctica 2
+  if (loading) return <p>Cargando...</p>;
+  if (error) return <p style={{ color: "red" }}>{error}</p>;
+
 
   return (
     <>
